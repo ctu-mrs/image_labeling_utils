@@ -1,0 +1,5 @@
+<library path="lib/libImageLabelingUtils">
+  <class name="image_labeling_utils/ImageLabelingUtils" type="image_labeling_utils::ImageLabelingUtils" base_class_type="nodelet::Nodelet">
+    <description>ImageLabelingUtils nodelet</description>
+  </class>
+</library>
