@@ -11,7 +11,7 @@ void ImageLabelingUtils::onInit() {
   got_image_       = false;
   got_artefact_gt_ = false;
   _labeling_on_    = false;
-  frame_count_ = 0;
+  frame_count_     = 0;
 
   ros::NodeHandle nh("~");
   ros::Time::waitForValid();
@@ -86,7 +86,7 @@ void ImageLabelingUtils::onInit() {
   reconfigure_server_->updateConfig(last_drs_config_);
   ROS_INFO("[ImageLabelingUtils]: Initialization was successfull");
 
-  
+
   is_initialized_ = true;
 }
 
@@ -102,10 +102,9 @@ void ImageLabelingUtils::callbackCameraInfo(const sensor_msgs::CameraInfoConstPt
 
   // update the camera model using the latest camera info message
   camera_model_.fromCameraInfo(*msg);
-
 }
 //}
-    
+
 /* callbackImage() method //{ */
 void ImageLabelingUtils::callbackImage(const sensor_msgs::ImageConstPtr& msg) {
   const std::string color_encoding     = "bgr8";
@@ -236,6 +235,7 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
 
   const cv::Scalar color(255, 0, 0);
   cv::Rect         bounding(pt2d.x, pt2d.y, 10, 10);
+  ROS_INFO("[]:  x %f y %f ", pt2d_l.x, pt2d_l.y);
 
   cv::rectangle(projected_point, pt2d_l, pt2d_r, color);
 
@@ -298,41 +298,65 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
 
   {
 
-    if (!_labeling_on_) { return; }
+    if (!_labeling_on_) {
+      return;
+    }
 
-    Json::Value frame_ = prepareStructure();
-    std::ofstream outfile (json_saving_path_ + std::to_string(frame_count_)+".json");
+    Json::Value   frame_ = prepareStructure();
+    std::ofstream outfile(json_saving_path_ + std::to_string(frame_count_) + ".json");
 
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
 
-      Json::Value shape_;
-      shape_["label"] = _object_str_;
-      shape_["points"] = Json::arrayValue;
-      Json::Value l;
-      l[0] = left_top.x;
-      l[1] = left_top.x;
-      shape_["points"].append(l);
+    Json::Value shape_;
+    shape_["label"]  = _object_str_;
+    shape_["points"] = Json::arrayValue;
+    Json::Value l;
+    l[0] = left_top.x;
+    l[1] = left_top.y;
+    shape_["points"].append(l);
 
-      Json::Value r;
-      r[0] = right_bot.x;
-      r[1] = right_bot.x;
-      shape_["points"].append(r);
+    Json::Value r;
+    r[0] = right_bot.x;
+    r[1] = right_bot.y;
+    shape_["points"].append(r);
 
-      shape_["shape_type"] = "rectangle";
-      shape_["flags"] = Json::objectValue;
-      frame_["shapes"].append(shape_);
+    shape_["shape_type"] = "rectangle";
+    shape_["flags"]      = Json::objectValue;
+    frame_["shapes"].append(shape_);
 
-      frame_["imagePath"] = std::to_string(frame_count_)+".json";
-      frame_["imageHeight"] = image.rows();
-      frame_["imageWidth"] = image.cols();
-
-      outfile << styledWriter.write(frame_);
-      outfile.flush();
-      outfile.close();
-      frame_count_++;
-
+    frame_["imagePath"]   = std::to_string(frame_count_) + ".jpg";
+    frame_["imageHeight"] = image.rows();
+    frame_["imageWidth"]  = image.cols();
+    cv::imwrite(img_saving_path_ + std::to_string(frame_count_) + ".jpg", image);
+    
+    outfile << styledWriter.write(frame_);
+    outfile.flush();
+    outfile.close();
+    frame_count_++;
   }
+}
 
+//}
+
+/* base64_encode //{ */
+
+std::string ImageLabelingUtils::base64_encode(std::vector<uchar> in) {
+  std::string out;
+
+  int val = 0, valb = -6;
+  for (uchar c : in) {
+    val = (val << 8) + c;
+    valb += 8;
+    while (valb >= 0) {
+      out.push_back(in[(val >> valb) & 0x3F]);
+      valb -= 6;
+    }
+  }
+  if (valb > -6)
+    out.push_back(in[((val << 8) >> (valb + 8)) & 0x3F]);
+  while (out.size() % 4)
+    out.push_back('=');
+  return out;
 }
 
 //}
@@ -341,10 +365,10 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
 
 Json::Value ImageLabelingUtils::prepareStructure() {
   Json::Value structure_;
-  structure_["version"] = "0.0.1";
-  structure_["flags"] = Json::objectValue;
-  structure_["shapes"] = Json::arrayValue;
-  structure_["imageData"]  = Json::nullValue;
+  structure_["version"]   = "0.0.1";
+  structure_["flags"]     = Json::objectValue;
+  structure_["shapes"]    = Json::arrayValue;
+  structure_["imageData"] = Json::nullValue;
 
   return structure_;
 }

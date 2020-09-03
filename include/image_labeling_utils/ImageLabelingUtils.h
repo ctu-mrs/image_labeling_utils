@@ -158,6 +158,8 @@ private:
   long frame_count_;
 
   Json::Value prepareStructure();
+
+  std::string base64_encode(std::vector <uchar> in);
 };
 
 //}

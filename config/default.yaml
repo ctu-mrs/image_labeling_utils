@@ -1,6 +1,6 @@
 rate: {check_subscribers: 1, publish: 10}
-object_id: 4
-object_str: "rope"
+object_id: 0
+object_str: "survivor"
 objects:
   [
   0.3, 0.3, 0.15, 0, 0, # surv

@@ -31,8 +31,8 @@
 
       <param name="uav_name" type="string" value="$(arg UAV_NAME)"/>
       <param name="camera_frame_id" type="string" value="MARBLE_QAV500/base_link/camera_front_optical"/>
-      <param name="json_dir" type="string" value="$(find image_labeling_utils)/datasets/"/>
-      <param name="img_dir" type="string" value="$(find image_labeling_utils)/dataset/images"/>
+      <param name="json_dir" type="string" value="$(find image_labeling_utils)/datasets/survivor/"/>
+      <param name="img_dir" type="string" value="$(find image_labeling_utils)/datasets/survivor/"/>
       <param name="dataset_name" type="string" value="randy_sim"/>
 
         <!-- ROS parameters config file -->
