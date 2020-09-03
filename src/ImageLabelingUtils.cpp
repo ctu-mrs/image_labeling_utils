@@ -23,8 +23,16 @@ void ImageLabelingUtils::onInit() {
   param_loader.loadParam("rate/publish", _rate_timer_publish_);
   param_loader.loadParam("rate/check_subscribers", _rate_timer_check_subscribers_);
   param_loader.loadParam("object_id", _object_id_);
-  param_loader.loadMatrixDynamic("objects", _objects_, -1, 2);
+  param_loader.loadMatrixDynamic("objects", _objects_, -1, 3);
 
+  if (_object_id_ > _objects_.rows() || _object_id_ < 0) {
+    ROS_ERROR("[ImageLabelingUtils]: The object id is below zero or out of the size of the objects matrix!");
+    ros::shutdown();
+  } else {
+    _obj_height_ = _objects_(_object_id_, 0);
+    _obj_width_  = _objects_(_object_id_, 1);
+    _obj_offset_ = _objects_(_object_id_, 2);
+  }
 
   if (!param_loader.loadedSuccessfully()) {
     ROS_ERROR("[ImageLabelingUtils]: failed to load non-optional parameters!");
@@ -63,7 +71,7 @@ void ImageLabelingUtils::onInit() {
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
     last_drs_config_.obj_height = _obj_height_;
-    last_drs_config_.obj_width = _obj_width_;
+    last_drs_config_.obj_width  = _obj_width_;
     last_drs_config_.obj_offset = _obj_offset_;
   }
   reconfigure_server_->updateConfig(last_drs_config_);
@@ -161,13 +169,13 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
 
   pt3d_world_left_bot              = pt3d_world;
   pt3d_world_left_bot.header.stamp = ros::Time();
-  pt3d_world_left_bot.pose.position.x -= 0.35;
-  pt3d_world_left_bot.pose.position.z -= 0.35;
+  pt3d_world_left_bot.pose.position.x -= _obj_width_ - _obj_offset_;
+  pt3d_world_left_bot.pose.position.z -= _obj_height_ - _obj_offset_;
 
   pt3d_world_right_top              = pt3d_world;
   pt3d_world_right_top.header.stamp = ros::Time();
-  pt3d_world_right_top.pose.position.x += 0.35;
-  pt3d_world_right_top.pose.position.z += 0.35;
+  pt3d_world_right_top.pose.position.x += _obj_width_ - _obj_offset_;
+  pt3d_world_right_top.pose.position.z += _obj_height_ - _obj_offset_;
 
   // | --------- transform the point to the camera frame -------- |
 
@@ -191,7 +199,8 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   }
 
   // | ----------- backproject the point from 3D to 2D ---------- |
-  ROS_INFO("[]: pos %f %f %f", pt3d_cam.pose.position.x, pt3d_cam.pose.position.y, pt3d_cam.pose.position.z);
+  /* ROS_INFO("[]: pos %f %f %f", pt3d_cam.pose.position.x, pt3d_cam.pose.position.y, pt3d_cam.pose.position.z); */
+  /* ROS_INFO("[]: width %f height %f offset %f", _obj_width_, _obj_height_, _obj_offset_); */
 
   const cv::Point3d pt3d(pt3d_cam.pose.position.x, pt3d_cam.pose.position.y, pt3d_cam.pose.position.z);
 
@@ -220,7 +229,7 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   const std::string coord_txt = "[" + std::to_string(artefact_pose.pose.position.x) + "," + std::to_string(artefact_pose.pose.position.y) + "," +
                                 std::to_string(artefact_pose.pose.position.z) + "]";
 
-  const cv::Point2d txt_pos(pt2d_unrec.x, pt2d_unrec.y);
+  const cv::Point2d txt_pos(pt2d_unrec.x + 20, pt2d_unrec.y + 20);
   const int         txt_font       = cv::FONT_HERSHEY_PLAIN;
   const double      txt_font_scale = 1.0;
   cv::putText(projected_point, coord_txt, txt_pos, txt_font, txt_font_scale, color);
@@ -256,11 +265,11 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
 
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
-    last_drs_config_.obj_height = _obj_height_;
-    last_drs_config_.obj_width = _obj_width_;
-    last_drs_config_.obj_offset = _obj_offset_;
+    ROS_INFO("[]: reconf %f %f %f", config.obj_height, config.obj_width, config.obj_offset);
+    _obj_height_ = config.obj_height;
+    _obj_width_  = config.obj_width;
+    _obj_offset_ = config.obj_offset;
   }
-
 }
 //}
 
