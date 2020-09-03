@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_geometry_msgs
   mrs_lib
+  dynamic_reconfigure
   )
 
 find_package(OpenCV REQUIRED)
@@ -24,6 +25,10 @@ find_package(Eigen3 REQUIRED)
 
 set(Eigen_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
 set(Eigen_LIBRARIES ${Eigen_LIBRARIES})
+
+generate_dynamic_reconfigure_options(
+  config/dynparam.cfg
+  )
 
 catkin_package(
   INCLUDE_DIRS include
@@ -43,6 +48,9 @@ include_directories(include
 
 add_library(ImageLabelingUtils src/ImageLabelingUtils.cpp)
 
+
+
+add_dependencies(ImageLabelingUtils ${PROJECT_NAME}_gencfg)
 
 add_dependencies(ImageLabelingUtils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

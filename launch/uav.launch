@@ -30,6 +30,7 @@
       <!-- Parameters loaded from launch file -->
 
       <param name="uav_name" type="string" value="$(arg UAV_NAME)"/>
+      <param name="camera_frame_id" type="string" value="MARBLE_QAV500/base_link/camera_front_optical"/>
 
         <!-- ROS parameters config file -->
       <rosparam file="$(find image_labeling_utils)/config/default.yaml" />

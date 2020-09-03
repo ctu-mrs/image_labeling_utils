@@ -22,6 +22,12 @@
 /* long unsigned integer message */
 #include <std_msgs/UInt64.h>
 
+/* for loading dynamic parameters while the nodelet is running */
+#include <dynamic_reconfigure/server.h>
+
+/* this header file is created during compilation from python script dynparam.cfg */
+#include <image_labeling_utils/dynparamConfig.h>
+
 /* some STL includes */
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,8 +113,31 @@ private:
   tf2_ros::Buffer                             tf_buffer_;
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_ptr_;
 
+  // | --------------- object params for labeling --------------- |
+  float           _obj_width_;
+  float           _obj_height_;
+  float           _obj_offset_;
+  Eigen::MatrixXd _objects_;
+  int             _object_id_;
+
+  // | --------------- labeling files destinations -------------- |
+  std::string img_saving_path_;
+  std::string json_saving_path_;
+  std::string dataset_name_;
+
+
+  // | ------------------- dynamic reconfigure ------------------ |
+
+  typedef image_labeling_utils::dynparamConfig                              Config;
+  typedef dynamic_reconfigure::Server<image_labeling_utils::dynparamConfig> ReconfigureServer;
+  boost::recursive_mutex                                                    mutex_dynamic_reconfigure_;
+  boost::shared_ptr<ReconfigureServer>                                      reconfigure_server_;
+  void                                                                      callbackDynamicReconfigure(Config& config, uint32_t level);
+  image_labeling_utils::dynparamConfig                                      last_drs_config_;
+
 
   cv::Mat projectWorldPointToImage(cv::InputArray image, const ros::Time& image_stamp);
+  void    saveFrame(cv::InputArray image, cv::Point2d left, cv::Point2d right);
 };
 
 //}
