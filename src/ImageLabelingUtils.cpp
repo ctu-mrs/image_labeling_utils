@@ -1,6 +1,4 @@
 #include <image_labeling_utils/ImageLabelingUtils.h>
-
-/* every nodelet must include macros which export the class as a nodelet plugin */
 #include <pluginlib/class_list_macros.h>
 
 
@@ -12,6 +10,8 @@ namespace image_labeling_utils
 void ImageLabelingUtils::onInit() {
   got_image_       = false;
   got_artefact_gt_ = false;
+  _labeling_on_    = false;
+  frame_count_ = 0;
 
   ros::NodeHandle nh("~");
   ros::Time::waitForValid();
@@ -23,14 +23,18 @@ void ImageLabelingUtils::onInit() {
   param_loader.loadParam("rate/publish", _rate_timer_publish_);
   param_loader.loadParam("rate/check_subscribers", _rate_timer_check_subscribers_);
   param_loader.loadParam("object_id", _object_id_);
+  param_loader.loadParam("object_str", _object_str_);
+  param_loader.loadParam("dataset_name", dataset_name_);
+  param_loader.loadParam("json_dir", json_saving_path_);
+  param_loader.loadParam("img_dir", img_saving_path_);
   param_loader.loadMatrixDynamic("objects", _objects_, -1, 5);
 
   if (_object_id_ > _objects_.rows() || _object_id_ < 0) {
     ROS_ERROR("[ImageLabelingUtils]: The object id is below zero or out of the size of the objects matrix!");
     ros::shutdown();
   } else {
-    _obj_height_ = _objects_(_object_id_, 0);
-    _obj_width_  = _objects_(_object_id_, 1);
+    _obj_height_   = _objects_(_object_id_, 0);
+    _obj_width_    = _objects_(_object_id_, 1);
     _obj_offset_x_ = _objects_(_object_id_, 2);
     _obj_offset_y_ = _objects_(_object_id_, 3);
     _obj_offset_z_ = _objects_(_object_id_, 4);
@@ -72,15 +76,17 @@ void ImageLabelingUtils::onInit() {
 
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
-    last_drs_config_.obj_height = _obj_height_;
-    last_drs_config_.obj_width  = _obj_width_;
+    last_drs_config_.obj_height   = _obj_height_;
+    last_drs_config_.obj_width    = _obj_width_;
     last_drs_config_.obj_offset_x = _obj_offset_x_;
     last_drs_config_.obj_offset_y = _obj_offset_y_;
     last_drs_config_.obj_offset_z = _obj_offset_z_;
+    last_drs_config_.labeling_on  = _labeling_on_;
   }
   reconfigure_server_->updateConfig(last_drs_config_);
   ROS_INFO("[ImageLabelingUtils]: Initialization was successfull");
 
+  
   is_initialized_ = true;
 }
 
@@ -96,9 +102,10 @@ void ImageLabelingUtils::callbackCameraInfo(const sensor_msgs::CameraInfoConstPt
 
   // update the camera model using the latest camera info message
   camera_model_.fromCameraInfo(*msg);
+
 }
 //}
-
+    
 /* callbackImage() method //{ */
 void ImageLabelingUtils::callbackImage(const sensor_msgs::ImageConstPtr& msg) {
   const std::string color_encoding     = "bgr8";
@@ -171,26 +178,26 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   pt3d_world.pose.position.y -= _obj_offset_y_;
   pt3d_world.pose.position.z -= _obj_offset_z_;
 
-  geometry_msgs::PoseStamped pt3d_world_left_bot;
-  geometry_msgs::PoseStamped pt3d_world_right_top;
+  geometry_msgs::PoseStamped pt3d_world_left_top;
+  geometry_msgs::PoseStamped pt3d_world_right_bot;
 
-  pt3d_world_left_bot              = pt3d_world;
-  pt3d_world_left_bot.header.stamp = ros::Time();
-  pt3d_world_left_bot.pose.position.x -= _obj_width_;
-  pt3d_world_left_bot.pose.position.z -= _obj_height_;
+  pt3d_world_left_top              = pt3d_world;
+  pt3d_world_left_top.header.stamp = ros::Time();
+  pt3d_world_left_top.pose.position.x -= _obj_width_;
+  pt3d_world_left_top.pose.position.z += _obj_height_;
 
-  pt3d_world_right_top              = pt3d_world;
-  pt3d_world_right_top.header.stamp = ros::Time();
-  pt3d_world_right_top.pose.position.x += _obj_width_;
-  pt3d_world_right_top.pose.position.z += _obj_height_;
+  pt3d_world_right_bot              = pt3d_world;
+  pt3d_world_right_bot.header.stamp = ros::Time();
+  pt3d_world_right_bot.pose.position.x += _obj_width_;
+  pt3d_world_right_bot.pose.position.z -= _obj_height_;
 
   // | --------- transform the point to the camera frame -------- |
 
   std::string camera_frame = camera_model_.tfFrame();
 
   auto ret   = transformer_.transformSingle(camera_frame_id_, pt3d_world);
-  auto ret_l = transformer_.transformSingle(camera_frame_id_, pt3d_world_left_bot);
-  auto ret_r = transformer_.transformSingle(camera_frame_id_, pt3d_world_right_top);
+  auto ret_l = transformer_.transformSingle(camera_frame_id_, pt3d_world_left_top);
+  auto ret_r = transformer_.transformSingle(camera_frame_id_, pt3d_world_right_bot);
 
   geometry_msgs::PoseStamped pt3d_cam;
   geometry_msgs::PoseStamped pt3d_cam_l;
@@ -231,6 +238,8 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   cv::Rect         bounding(pt2d.x, pt2d.y, 10, 10);
 
   cv::rectangle(projected_point, pt2d_l, pt2d_r, color);
+
+  saveFrame(image, pt2d_l, pt2d_r);
 
   // Draw the text with the coordinates to the image
   const std::string coord_txt = "[" + std::to_string(artefact_pose.pose.position.x) + "," + std::to_string(artefact_pose.pose.position.y) + "," +
@@ -273,15 +282,74 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
     ROS_INFO("[]: reconf %f %f %f", config.obj_height, config.obj_width, config.obj_offset_x);
-    _obj_height_ = config.obj_height;
-    _obj_width_  = config.obj_width;
+    _obj_height_   = config.obj_height;
+    _obj_width_    = config.obj_width;
     _obj_offset_x_ = config.obj_offset_x;
     _obj_offset_y_ = config.obj_offset_y;
     _obj_offset_z_ = config.obj_offset_z;
+    _labeling_on_  = config.labeling_on;
   }
 }
 //}
 
+/* saveFrame() //{ */
+
+void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, cv::Point2d right_bot) {
+
+  {
+
+    if (!_labeling_on_) { return; }
+
+    Json::Value frame_ = prepareStructure();
+    std::ofstream outfile (json_saving_path_ + std::to_string(frame_count_)+".json");
+
+    std::scoped_lock loc(mutex_dynamic_reconfigure_);
+
+      Json::Value shape_;
+      shape_["label"] = _object_str_;
+      shape_["points"] = Json::arrayValue;
+      Json::Value l;
+      l[0] = left_top.x;
+      l[1] = left_top.x;
+      shape_["points"].append(l);
+
+      Json::Value r;
+      r[0] = right_bot.x;
+      r[1] = right_bot.x;
+      shape_["points"].append(r);
+
+      shape_["shape_type"] = "rectangle";
+      shape_["flags"] = Json::objectValue;
+      frame_["shapes"].append(shape_);
+
+      frame_["imagePath"] = std::to_string(frame_count_)+".json";
+      frame_["imageHeight"] = image.rows();
+      frame_["imageWidth"] = image.cols();
+
+      outfile << styledWriter.write(frame_);
+      outfile.flush();
+      outfile.close();
+      frame_count_++;
+
+  }
+
+}
+
+//}
+
+/* prepareStructure() //{ */
+
+Json::Value ImageLabelingUtils::prepareStructure() {
+  Json::Value structure_;
+  structure_["version"] = "0.0.1";
+  structure_["flags"] = Json::objectValue;
+  structure_["shapes"] = Json::arrayValue;
+  structure_["imageData"]  = Json::nullValue;
+
+  return structure_;
+}
+
+//}
 
 }  // namespace image_labeling_utils
 

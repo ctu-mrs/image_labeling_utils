@@ -50,6 +50,12 @@
 #include <mrs_lib/param_loader.h>
 #include <mrs_lib/transformer.h>
 
+/* packages for json reading and writing COCO format */
+#include "json/json.h"
+#include <iostream>
+#include <iostream>
+
+
 //}
 
 
@@ -121,12 +127,20 @@ private:
   float           _obj_offset_z_;
   Eigen::MatrixXd _objects_;
   int             _object_id_;
+  std::string     _object_str_;
+  bool            _labeling_on_;
 
   // | --------------- labeling files destinations -------------- |
   std::string img_saving_path_;
   std::string json_saving_path_;
   std::string dataset_name_;
 
+  // | -------------------- JSON instruments -------------------- |
+  Json::Reader              reader;
+  Json::Value               root;
+  Json::StreamWriterBuilder builder;
+  Json::StyledWriter        styledWriter;
+  std::ofstream             file_id;
 
   // | ------------------- dynamic reconfigure ------------------ |
 
@@ -139,7 +153,11 @@ private:
 
 
   cv::Mat projectWorldPointToImage(cv::InputArray image, const ros::Time& image_stamp);
-  void    saveFrame(cv::InputArray image, cv::Point2d left, cv::Point2d right);
+
+  void saveFrame(cv::InputArray image, cv::Point2d left_top, cv::Point2d right_bot);
+  long frame_count_;
+
+  Json::Value prepareStructure();
 };
 
 //}
