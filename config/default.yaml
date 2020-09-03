@@ -2,9 +2,9 @@ rate: {check_subscribers: 1, publish: 10}
 object_id: 0
 objects:
   [
-  0.3, 0.3, 0.15, # surv
-  0.35, 0.2, 0.0, # backpack
-  0.1, 0.3, 0.0, # helm
-  0.1, 0.2, 0.0, # phone
-  0.2, 0.2, 0.0, # rope
+  0.3, 0.3, 0.15, 0, 0, # surv
+  0.35, 0.2, 0.0, 0, 0, # backpack
+  0.1, 0.3, 0.0, 0, 0, # helm
+  0.1, 0.2, 0.0, 0, 0, # phone
+  0.2, 0.2, 0.0, 0, 0, # rope
   ]

@@ -116,7 +116,9 @@ private:
   // | --------------- object params for labeling --------------- |
   float           _obj_width_;
   float           _obj_height_;
-  float           _obj_offset_;
+  float           _obj_offset_x_;
+  float           _obj_offset_y_;
+  float           _obj_offset_z_;
   Eigen::MatrixXd _objects_;
   int             _object_id_;
 

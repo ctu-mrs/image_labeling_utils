@@ -23,7 +23,7 @@ void ImageLabelingUtils::onInit() {
   param_loader.loadParam("rate/publish", _rate_timer_publish_);
   param_loader.loadParam("rate/check_subscribers", _rate_timer_check_subscribers_);
   param_loader.loadParam("object_id", _object_id_);
-  param_loader.loadMatrixDynamic("objects", _objects_, -1, 3);
+  param_loader.loadMatrixDynamic("objects", _objects_, -1, 5);
 
   if (_object_id_ > _objects_.rows() || _object_id_ < 0) {
     ROS_ERROR("[ImageLabelingUtils]: The object id is below zero or out of the size of the objects matrix!");
@@ -31,7 +31,9 @@ void ImageLabelingUtils::onInit() {
   } else {
     _obj_height_ = _objects_(_object_id_, 0);
     _obj_width_  = _objects_(_object_id_, 1);
-    _obj_offset_ = _objects_(_object_id_, 2);
+    _obj_offset_x_ = _objects_(_object_id_, 2);
+    _obj_offset_y_ = _objects_(_object_id_, 3);
+    _obj_offset_z_ = _objects_(_object_id_, 4);
   }
 
   if (!param_loader.loadedSuccessfully()) {
@@ -72,7 +74,9 @@ void ImageLabelingUtils::onInit() {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
     last_drs_config_.obj_height = _obj_height_;
     last_drs_config_.obj_width  = _obj_width_;
-    last_drs_config_.obj_offset = _obj_offset_;
+    last_drs_config_.obj_offset_x = _obj_offset_x_;
+    last_drs_config_.obj_offset_y = _obj_offset_y_;
+    last_drs_config_.obj_offset_z = _obj_offset_z_;
   }
   reconfigure_server_->updateConfig(last_drs_config_);
   ROS_INFO("[ImageLabelingUtils]: Initialization was successfull");
@@ -163,19 +167,22 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
     std::scoped_lock lock(mutex_counters_);
     pt3d_world = artefact_pose;
   }
+  pt3d_world.pose.position.x -= _obj_offset_x_;
+  pt3d_world.pose.position.y -= _obj_offset_y_;
+  pt3d_world.pose.position.z -= _obj_offset_z_;
 
   geometry_msgs::PoseStamped pt3d_world_left_bot;
   geometry_msgs::PoseStamped pt3d_world_right_top;
 
   pt3d_world_left_bot              = pt3d_world;
   pt3d_world_left_bot.header.stamp = ros::Time();
-  pt3d_world_left_bot.pose.position.x -= _obj_width_ - _obj_offset_;
-  pt3d_world_left_bot.pose.position.z -= _obj_height_ - _obj_offset_;
+  pt3d_world_left_bot.pose.position.x -= _obj_width_;
+  pt3d_world_left_bot.pose.position.z -= _obj_height_;
 
   pt3d_world_right_top              = pt3d_world;
   pt3d_world_right_top.header.stamp = ros::Time();
-  pt3d_world_right_top.pose.position.x += _obj_width_ - _obj_offset_;
-  pt3d_world_right_top.pose.position.z += _obj_height_ - _obj_offset_;
+  pt3d_world_right_top.pose.position.x += _obj_width_;
+  pt3d_world_right_top.pose.position.z += _obj_height_;
 
   // | --------- transform the point to the camera frame -------- |
 
@@ -265,10 +272,12 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
 
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
-    ROS_INFO("[]: reconf %f %f %f", config.obj_height, config.obj_width, config.obj_offset);
+    ROS_INFO("[]: reconf %f %f %f", config.obj_height, config.obj_width, config.obj_offset_x);
     _obj_height_ = config.obj_height;
     _obj_width_  = config.obj_width;
-    _obj_offset_ = config.obj_offset;
+    _obj_offset_x_ = config.obj_offset_x;
+    _obj_offset_y_ = config.obj_offset_y;
+    _obj_offset_z_ = config.obj_offset_z;
   }
 }
 //}
