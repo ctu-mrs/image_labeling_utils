@@ -27,7 +27,8 @@ void ImageLabelingUtils::onInit() {
   param_loader.loadParam("dataset_name", dataset_name_);
   param_loader.loadParam("json_dir", json_saving_path_);
   param_loader.loadParam("img_dir", img_saving_path_);
-  param_loader.loadMatrixDynamic("objects", _objects_, -1, 5);
+  param_loader.loadMatrixDynamic("objects", _objects_, -1, 6);
+  dataset_name_ += "_" + std::to_string(ros::Time::now().toSec());
 
   if (_object_id_ > _objects_.rows() || _object_id_ < 0) {
     ROS_ERROR("[ImageLabelingUtils]: The object id is below zero or out of the size of the objects matrix!");
@@ -35,9 +36,10 @@ void ImageLabelingUtils::onInit() {
   } else {
     _obj_height_   = _objects_(_object_id_, 0);
     _obj_width_    = _objects_(_object_id_, 1);
-    _obj_offset_x_ = _objects_(_object_id_, 2);
-    _obj_offset_y_ = _objects_(_object_id_, 3);
-    _obj_offset_z_ = _objects_(_object_id_, 4);
+    _obj_width_y_  = _objects_(_object_id_, 2);
+    _obj_offset_x_ = _objects_(_object_id_, 3);
+    _obj_offset_y_ = _objects_(_object_id_, 4);
+    _obj_offset_z_ = _objects_(_object_id_, 5);
   }
 
   if (!param_loader.loadedSuccessfully()) {
@@ -56,6 +58,8 @@ void ImageLabelingUtils::onInit() {
 
   tf_listener_ptr_ = std::make_unique<tf2_ros::TransformListener>(tf_buffer_);
 
+  srv_save_csv_ = nh.advertiseService("save_csv", &ImageLabelingUtils::serviceSaveCsv, this);
+
 
   // | ----------------- initialize subscribers ----------------- |
   sub_image_       = it.subscribe("image_in", 1, &ImageLabelingUtils::callbackImage, this);
@@ -67,7 +71,6 @@ void ImageLabelingUtils::onInit() {
 
   timer_check_subscribers_ = nh.createTimer(ros::Rate(_rate_timer_check_subscribers_), &ImageLabelingUtils::callbackTimerCheckSubscribers, this);
 
-
   // | ---------- initialize dynamic reconfigure server --------- |
 
   reconfigure_server_.reset(new ReconfigureServer(mutex_dynamic_reconfigure_, nh));
@@ -78,15 +81,22 @@ void ImageLabelingUtils::onInit() {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
     last_drs_config_.obj_height   = _obj_height_;
     last_drs_config_.obj_width    = _obj_width_;
+    last_drs_config_.obj_width_y  = _obj_width_y_;
     last_drs_config_.obj_offset_x = _obj_offset_x_;
     last_drs_config_.obj_offset_y = _obj_offset_y_;
     last_drs_config_.obj_offset_z = _obj_offset_z_;
     last_drs_config_.labeling_on  = _labeling_on_;
   }
   reconfigure_server_->updateConfig(last_drs_config_);
+
+
   ROS_INFO("[ImageLabelingUtils]: Initialization was successfull");
 
-
+  boost::filesystem::create_directories(img_saving_path_ + "/" + dataset_name_ + "/");
+  boost::filesystem::create_directories(json_saving_path_ + "/" + dataset_name_ + "/");
+  img_saving_path_ = img_saving_path_ + "/" + dataset_name_ + "/";
+  json_saving_path_ += "/" + dataset_name_ + "/";
+  path_name_      = "../../images/" + dataset_name_ + "/";
   is_initialized_ = true;
 }
 
@@ -183,12 +193,14 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   pt3d_world_left_top              = pt3d_world;
   pt3d_world_left_top.header.stamp = ros::Time();
   pt3d_world_left_top.pose.position.x -= _obj_width_;
-  pt3d_world_left_top.pose.position.z += _obj_height_;
+  pt3d_world_left_top.pose.position.y -= _obj_width_;
+  pt3d_world_left_top.pose.position.z -= _obj_height_;
 
   pt3d_world_right_bot              = pt3d_world;
   pt3d_world_right_bot.header.stamp = ros::Time();
   pt3d_world_right_bot.pose.position.x += _obj_width_;
-  pt3d_world_right_bot.pose.position.z -= _obj_height_;
+  pt3d_world_right_bot.pose.position.y += _obj_width_;
+  pt3d_world_right_bot.pose.position.z += _obj_height_;
 
   // | --------- transform the point to the camera frame -------- |
 
@@ -235,7 +247,7 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
 
   const cv::Scalar color(255, 0, 0);
   cv::Rect         bounding(pt2d.x, pt2d.y, 10, 10);
-  ROS_INFO("[]:  x %f y %f ", pt2d_l.x, pt2d_l.y);
+  ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: Received image, label is set ");
 
   cv::rectangle(projected_point, pt2d_l, pt2d_r, color);
 
@@ -278,12 +290,12 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
 
   if (!is_initialized_)
     return;
-
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
-    ROS_INFO("[]: reconf %f %f %f", config.obj_height, config.obj_width, config.obj_offset_x);
+    ROS_INFO("[ImageLabelingUtils]: triggered dynamic reconfigure ");
     _obj_height_   = config.obj_height;
     _obj_width_    = config.obj_width;
+    _obj_width_y_  = config.obj_width_y;
     _obj_offset_x_ = config.obj_offset_x;
     _obj_offset_y_ = config.obj_offset_y;
     _obj_offset_z_ = config.obj_offset_z;
@@ -297,15 +309,16 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
 void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, cv::Point2d right_bot) {
 
   {
+    std::scoped_lock loc(mutex_dynamic_reconfigure_);
 
     if (!_labeling_on_) {
       return;
     }
 
+    std::string   name_  = std::to_string(ros::Time::now().toSec()) + "_" + std::to_string(frame_count_);
     Json::Value   frame_ = prepareStructure();
-    std::ofstream outfile(json_saving_path_ + std::to_string(frame_count_) + ".json");
+    std::ofstream outfile(json_saving_path_ + name_ + ".json");
 
-    std::scoped_lock loc(mutex_dynamic_reconfigure_);
 
     Json::Value shape_;
     shape_["label"]  = _object_str_;
@@ -324,11 +337,21 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
     shape_["flags"]      = Json::objectValue;
     frame_["shapes"].append(shape_);
 
-    frame_["imagePath"]   = std::to_string(frame_count_) + ".jpg";
+
+    frame_["imagePath"]   = path_name_ + name_ + ".png";
     frame_["imageHeight"] = image.rows();
     frame_["imageWidth"]  = image.cols();
-    cv::imwrite(img_saving_path_ + std::to_string(frame_count_) + ".jpg", image);
-    
+    bool cv_res_          = cv::imwrite(img_saving_path_ + name_ + ".png", image);
+
+    _csv_ += path_name_ + name_ + ".png," + std::to_string((int)right_bot.x) + "," + std::to_string((int)right_bot.y) + "," + std::to_string((int)left_top.x) +
+             "," + std::to_string((int)left_top.y) + "," + _object_str_ + "\n";
+
+    if (cv_res_) {
+      ROS_ERROR_THROTTLE(1.0, "[ImageLabelingUtils]: Image or label file couldn't be saved, error, check the paths");
+    } else {
+      ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: Image and label have been saved");
+    }
+
     outfile << styledWriter.write(frame_);
     outfile.flush();
     outfile.close();
@@ -338,7 +361,7 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
 
 //}
 
-/* base64_encode //{ */
+/* base64_encode() //{ */
 
 std::string ImageLabelingUtils::base64_encode(std::vector<uchar> in) {
   std::string out;
@@ -371,6 +394,28 @@ Json::Value ImageLabelingUtils::prepareStructure() {
   structure_["imageData"] = Json::nullValue;
 
   return structure_;
+}
+
+//}
+
+/* serviceSaveCsv() //{ */
+
+bool ImageLabelingUtils::serviceSaveCsv([[maybe_unused]] std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+
+  std::ofstream outfile_csv(json_saving_path_ + dataset_name_ + ".csv");
+  if (outfile_csv.fail()) {
+    ROS_ERROR("[ERROR]: Saving has failed, check path");
+    resp.success = true;
+    return true;
+  }
+  outfile_csv << _csv_;
+
+  outfile_csv.flush();
+  outfile_csv.close();
+
+  resp.success = true;
+  ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: CSV have been saved");
+  return true;
 }
 
 //}

@@ -27,6 +27,10 @@
 
 /* this header file is created during compilation from python script dynparam.cfg */
 #include <image_labeling_utils/dynparamConfig.h>
+/* #include <image_labeling_utils/artefact_gtConfig.h> */
+
+/* including services headers */
+#include <std_srvs/Trigger.h>
 
 /* some STL includes */
 #include <stdlib.h>
@@ -39,7 +43,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 /* ROS includes for working with OpenCV and images */
 #include <image_transport/image_transport.h>
@@ -53,7 +56,9 @@
 /* packages for json reading and writing COCO format */
 #include "json/json.h"
 #include <iostream>
-#include <iostream>
+#include <stdio.h>
+#include <sys/io.h>
+#include <boost/filesystem.hpp>
 
 
 //}
@@ -113,6 +118,12 @@ private:
   int                        _rate_timer_publish_;
 
 
+  // | ------------------------- service ------------------------ |
+  bool               serviceSaveCsv([[maybe_unused]] std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
+  std::string        _csv_;
+  ros::ServiceServer srv_save_csv_;
+
+
   // | ------------- variables for point projection ------------- |
   std::string                                 world_frame_id_;
   std::string                                 camera_frame_id_;
@@ -121,6 +132,7 @@ private:
 
   // | --------------- object params for labeling --------------- |
   float           _obj_width_;
+  float           _obj_width_y_;
   float           _obj_height_;
   float           _obj_offset_x_;
   float           _obj_offset_y_;
@@ -134,6 +146,7 @@ private:
   std::string img_saving_path_;
   std::string json_saving_path_;
   std::string dataset_name_;
+  std::string path_name_;
 
   // | -------------------- JSON instruments -------------------- |
   Json::Reader              reader;
@@ -159,7 +172,7 @@ private:
 
   Json::Value prepareStructure();
 
-  std::string base64_encode(std::vector <uchar> in);
+  std::string base64_encode(std::vector<uchar> in);
 };
 
 //}

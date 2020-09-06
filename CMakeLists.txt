@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   mrs_lib
   dynamic_reconfigure
+  std_srvs
   )
 
 find_package(OpenCV REQUIRED)
@@ -29,12 +30,14 @@ set(Eigen_LIBRARIES ${Eigen_LIBRARIES})
 
 generate_dynamic_reconfigure_options(
   config/dynparam.cfg
+  config/artefact_gt.cfg
+  config/general.cfg
   )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ImageLabelingUtils
-  CATKIN_DEPENDS roscpp mrs_lib image_transport std_msgs cv_bridge image_geometry image_view
+  CATKIN_DEPENDS roscpp mrs_lib image_transport std_msgs cv_bridge image_geometry image_view 
   DEPENDS Eigen
   )
 

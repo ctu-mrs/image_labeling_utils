@@ -1,0 +1,35 @@
+name: simulation
+root: ./
+startup_window: status
+pre_window: export UAV_NAME=MARBLE_QAV500; rosparam set use_sim_time true
+windows:
+  - roscore:
+      layout: tiled
+      panes:
+        - roscore
+        - rosbag play /home/mrs/bag_files/subt_cave_qual/48_2020_09_02_17_16_49/_2020-09-02-17-19-11.bag --clock -l
+  - GT:
+      layout: tiled
+      panes:
+        - waitForRos; roslaunch image_labeling_utils uav.launch
+        - rosservice call /MARBLE_QAV500/image_labeling_utils/save_csv
+  - ros_qt:
+      layout: tiled
+      panes:
+        - waitForRos; rosrun rqt_reconfigure rqt_reconfigure
+        - waitForRos; rosrun rqt_image_view rqt_image_view
+  - layout:
+      layout: tiled
+      panes:
+        - waitForRos; sleep 1; ~/.i3/layout_manager.sh ./layout.json
+
+    # 'Gt' 'waitForRos; roslaunch image_labeling_utils uav.launch
+# '
+#   'DynRecon' 'waitForRos; rosrun rqt_reconfigure rqt_reconfigure
+# '
+#   'Image view' 'waitForRos; rosrun rqt_image_view rqt_image_view
+# '
+#   'Source' 'waitForRos; source /home/mrs/.zshrc
+# '
+#   'SaveFrame' 'waitForRos; rosservice call /MARBLE_QAV500/image_labeling_utils/save_csv
+# '

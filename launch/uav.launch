@@ -4,6 +4,9 @@
   <arg name="UAV_NAME" default="MARBLE_QAV500" />
   <arg name="RUN_TYPE" default="$(env RUN_TYPE)" />
 
+  <arg name="obj_name" default="$(env OBJ_NAME)" />
+  <arg name="art_name" default="$(env ART_NAME)" />
+
   <arg name="standalone" default="true" />
 
     <!-- allows disabling the gui from command line -->
@@ -31,10 +34,12 @@
 
       <param name="uav_name" type="string" value="$(arg UAV_NAME)"/>
       <param name="camera_frame_id" type="string" value="MARBLE_QAV500/base_link/camera_front_optical"/>
-      <param name="json_dir" type="string" value="$(find image_labeling_utils)/datasets/survivor/"/>
-      <param name="img_dir" type="string" value="$(find image_labeling_utils)/datasets/survivor/"/>
-      <param name="dataset_name" type="string" value="randy_sim"/>
-
+      <!-- <param name="dataset_name" type="string" value="randy_sim"/> -->
+      <param name="dataset_name" value="$(arg art_name)"/>
+      <param name="object_id" value="0"/>
+      <param name="object_str" value="$(arg obj_name)"/>
+      <param name="json_dir" type="string" value="$(find image_labeling_utils)/datasets/labels/"/>
+      <param name="img_dir" type="string" value="$(find image_labeling_utils)/datasets/images/"/>
         <!-- ROS parameters config file -->
       <rosparam file="$(find image_labeling_utils)/config/default.yaml" />
 
@@ -43,11 +48,17 @@
       <remap from="~camera_info_in" to="front/camera_info" />
 
       <remap from="~artefact_boundings" to="~artefact_boundings" />
-      <remap from="~artefact_pose" to="/artefact_gt" />
+      <remap from="~artefact_pose" to="artefact_gt" />
         <!-- Publishers -->
       <remap from="~test_publisher" to="~image_number" />
 
     </node>
+    <node pkg="image_labeling_utils" type="artefact_gt_publisher.py" name="artefact_gt" output="screen" >
+      <param name="sdf_path" value="/home/mrs/subt_workspace/src/subt_virtual/ros_packages/subt_virtual_launch/worlds/mrs_simple_cave_01.sdf"/>
+      <param name="object_name" value="$(arg art_name)"/>
+      <param name="obj_frame" value="MARBLE_QAV500/virtual_origin"/>
+    </node>
+
 
   </group>
 
