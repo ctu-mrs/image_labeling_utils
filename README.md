@@ -11,7 +11,7 @@ The 3d position of the object is projected into the camera frame using the camer
       <pose>453.290000 183.140000 9.500000 0 0 0.261799</pose>
     </include>
   ```
-
+- in case you need to label a moving object, supply a topic with position of the object, it should be of ``geometry_msgs/PoseStamped``, and remap it in launch file ``~artefact_pose``
 - odometry for the vehicle
 - the transformation from artifact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
