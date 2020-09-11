@@ -35,7 +35,7 @@ This package is developed and used by MRS group to create labeled dataset in sim
       }
    ],
    "version" : "0.0.1"
-}
+  }
   ```
 
 - the csv format is as follows:
