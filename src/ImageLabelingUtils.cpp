@@ -193,13 +193,13 @@ cv::Mat ImageLabelingUtils::projectWorldPointToImage(cv::InputArray image, const
   pt3d_world_left_top              = pt3d_world;
   pt3d_world_left_top.header.stamp = ros::Time();
   pt3d_world_left_top.pose.position.x -= _obj_width_;
-  pt3d_world_left_top.pose.position.y -= _obj_width_;
+  pt3d_world_left_top.pose.position.y -= _obj_width_y_;
   pt3d_world_left_top.pose.position.z -= _obj_height_;
 
   pt3d_world_right_bot              = pt3d_world;
   pt3d_world_right_bot.header.stamp = ros::Time();
   pt3d_world_right_bot.pose.position.x += _obj_width_;
-  pt3d_world_right_bot.pose.position.y += _obj_width_;
+  pt3d_world_right_bot.pose.position.y += _obj_width_y_;
   pt3d_world_right_bot.pose.position.z += _obj_height_;
 
   // | --------- transform the point to the camera frame -------- |
@@ -292,6 +292,11 @@ void ImageLabelingUtils::callbackDynamicReconfigure([[maybe_unused]] Config& con
     return;
   {
     std::scoped_lock loc(mutex_dynamic_reconfigure_);
+
+    if (!config.labeling_on && _labeling_on_) {
+      ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: Saving csv due to labeling has been stopped");
+      saveCsv();
+    }
     ROS_INFO("[ImageLabelingUtils]: triggered dynamic reconfigure ");
     _obj_height_   = config.obj_height;
     _obj_width_    = config.obj_width;
@@ -320,23 +325,24 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
     std::ofstream outfile(json_saving_path_ + name_ + ".json");
 
 
-    Json::Value shape_;
-    shape_["label"]  = _object_str_;
-    shape_["points"] = Json::arrayValue;
-    Json::Value l;
-    l[0] = left_top.x;
-    l[1] = left_top.y;
-    shape_["points"].append(l);
+    if ( (left_top.x < image.cols() && right_bot.x < image.cols()) &&  (left_top.y < image.rows() && right_bot.y < image.rows())) {
+      Json::Value shape_;
+      shape_["label"]  = _object_str_;
+      shape_["points"] = Json::arrayValue;
+      Json::Value l;
+      l[0] = left_top.x;
+      l[1] = left_top.y;
+      shape_["points"].append(l);
 
-    Json::Value r;
-    r[0] = right_bot.x;
-    r[1] = right_bot.y;
-    shape_["points"].append(r);
+      Json::Value r;
+      r[0] = right_bot.x;
+      r[1] = right_bot.y;
+      shape_["points"].append(r);
 
-    shape_["shape_type"] = "rectangle";
-    shape_["flags"]      = Json::objectValue;
-    frame_["shapes"].append(shape_);
-
+      shape_["shape_type"] = "rectangle";
+      shape_["flags"]      = Json::objectValue;
+      frame_["shapes"].append(shape_);
+    }
 
     frame_["imagePath"]   = path_name_ + name_ + ".png";
     frame_["imageHeight"] = image.rows();
@@ -346,7 +352,7 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
     _csv_ += path_name_ + name_ + ".png," + std::to_string((int)right_bot.x) + "," + std::to_string((int)right_bot.y) + "," + std::to_string((int)left_top.x) +
              "," + std::to_string((int)left_top.y) + "," + _object_str_ + "\n";
 
-    if (cv_res_) {
+    if (!cv_res_ && outfile.fail()) {
       ROS_ERROR_THROTTLE(1.0, "[ImageLabelingUtils]: Image or label file couldn't be saved, error, check the paths");
     } else {
       ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: Image and label have been saved");
@@ -402,23 +408,35 @@ Json::Value ImageLabelingUtils::prepareStructure() {
 
 bool ImageLabelingUtils::serviceSaveCsv([[maybe_unused]] std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
 
-  std::ofstream outfile_csv(json_saving_path_ + dataset_name_ + ".csv");
-  if (outfile_csv.fail()) {
-    ROS_ERROR("[ERROR]: Saving has failed, check path");
-    resp.success = true;
+  if (saveCsv()) {
+    ROS_ERROR("[ERROR]: Service saving csv has failed, check path");
+    resp.success = false;
     return true;
   }
-  outfile_csv << _csv_;
-
-  outfile_csv.flush();
-  outfile_csv.close();
-
   resp.success = true;
   ROS_INFO_THROTTLE(1.0, "[ImageLabelingUtils]: CSV have been saved");
   return true;
 }
 
 //}
+
+/* saveCsv() //{ */
+
+bool ImageLabelingUtils::saveCsv() {
+  std::ofstream outfile_csv(json_saving_path_ + dataset_name_ + ".csv");
+  if (outfile_csv.fail()) {
+    ROS_ERROR("[ERROR]: Saving has failed, check path");
+    return false;
+  }
+  outfile_csv << _csv_;
+
+  outfile_csv.flush();
+  outfile_csv.close();
+  return true;
+}
+
+//}
+
 
 }  // namespace image_labeling_utils
 

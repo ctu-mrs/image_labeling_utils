@@ -168,9 +168,11 @@ private:
   cv::Mat projectWorldPointToImage(cv::InputArray image, const ros::Time& image_stamp);
 
   void saveFrame(cv::InputArray image, cv::Point2d left_top, cv::Point2d right_bot);
+  bool saveCsv();
   long frame_count_;
 
   Json::Value prepareStructure();
+
 
   std::string base64_encode(std::vector<uchar> in);
 };
