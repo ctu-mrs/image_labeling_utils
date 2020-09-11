@@ -1,11 +1,11 @@
 ### Image Labeling Utils
-This package is developed and used by MRS group to create labeled dataset in simulation using ground truth position of the object from gazebo-like simulators.
-The 3d position of the object is projected into camera frame using the camera info topic in ROS format.
+This package is developed and used by the MRS group to create a labeled dataset in simulation using ground truth position of the object from gazebo-like simulators.
+The 3d position of the object is projected into the camera frame using the camera info topic in ROS format.
 
 ## Requirements:
-- sdf file of the objects that satisfy the format for parsing it in scripts/artefact_gt_publisher.py
+- SDF file of the objects that satisfy the format for parsing it in scripts/artefact_gt_publisher.py
 - odometry for the vehicle
-- transformation from artefact frame to the frame of the vehicle odometry
+- the transformation from artifact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
 - set two variable in .bashrc or .zshrc:
   - ```export ART_NAME="artefact_name_in_gazebo_world"``` - this specifies the artefact name that is parsed from world file (in sdf format for ign gazebo)
@@ -15,11 +15,11 @@ The 3d position of the object is projected into camera frame using the camera in
 ## Output:
 - The package outputs an image on /UAV_NAME/image_labeling_utils/artefact_boundings
 ![config/backpack_label.png](config/backpack_label.png)
-- The boudning box is managed using the ROS rqt_reconfigure plugin, as shown in the picture, it also provides an offset to the artefact position, to surpress the odometry drift of your vehicle
+- The bounding box is managed using the ROS rqt_reconfigure plugin, as shown in the picture, it also provides an offset to the artifact position, to suppress the odometry drift of the vehicle
 ![config/rqt_pic.png](config/rqt_pic.png)
 - Using the rqt button "labeling_on" you can turn on image saving. The images are saved to dataset/images/<name_of_the_object>.time/*.png. The labels are saved to  dataset/labels/<name_of_the_object>.time/*.json.
-- The label format is presented in two types: [labelme](https://github.com/wkentaro/labelme) and csv. In each folder you will get a json for each image, and a csv file for the whole directory (containing every frame).
-- Json format is like following:
+- The label format is presented in two types: [labelme](https://github.com/wkentaro/labelme) and CSV. In each folder, there is a JSON for each image, and a CSV file for the whole directory (containing every frame).
+- JSON format is like the following:
    ```json
    {
    "flags" : {},
@@ -48,8 +48,8 @@ The 3d position of the object is projected into camera frame using the camera in
   ```
 
 ## Future TODOs:
-- add brightness control - often using labeling tools brightness is used to label objects that are in shadow, or somewhere far. We have ecnountered several issues when the object was on the picture, but was very dark, usually a Deep NN can detect such objects.
-- dynamic change of the size using object size and XYZ RPY position, gettign rid of the manual width and height params
+- add brightness control - brightness is used to label objects that are in shadow or somewhere far. We had encountered several issues when the object was on the picture but was very dark. Usually, a Deep NN can detect such objects.
+- dynamic change of the size using object size and XYZ RPY position, getting rid of the manual width and height params
 - read gazebo world file to parse objects
 
 Authors & Contact
@@ -57,7 +57,7 @@ Authors & Contact
 ```
 Yurii Stasinchuk <stasiyur@fel.cvut.cz>
 Matous Vrba <vrbamato@fel.cvut.cz> 
-Multi Robot Systems mrs.felk.cvut.cz
+Multi-Robot Systems mrs.felk.cvut.cz
 Faculty of electrical engineering,
 Czech Technical University in Prague
 ```
