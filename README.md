@@ -1,15 +1,17 @@
 ### Image Labeling Utils
-
+-----------------
 This package is developed and used by MRS group to create labeled dataset in simulation using ground truth position of the object from gazebo-like simulators.
 The 3d position of the object is projected into camera frame using the camera info topic in ROS format.
 
 ## Requirements:
+-----------------
 - sdf file of the objects that satisfy the format for parsing it in scripts/artefact_gt_publisher.py
 - odometry for the vehicle
 - transformation from artefact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
 
 ## Output:
+-----------------
 - The package outputs an image on /UAV_NAME/image_labeling_utils/artefact_boundings
 ![config/backpack_label.png](config/backpack_label.png)
 - The boudning box is managed using the ROS rqt_reconfigure plugin, as shown in the picture, it also provides an offset to the artefact position, to surpress the odometry drift of your vehicle
@@ -43,3 +45,19 @@ The 3d position of the object is projected into camera frame using the camera in
   ```
     ../../images/backpack_3_214.968000/230.120000_0.png,x1,y1,x2,y2,obj_name
   ```
+
+## Future TODOs:
+-----------------
+- add brightness control - often using labeling tools brightness is used to label objects that are in shadow, or somewhere far. We have ecnountered several issues when the object was on the picture, but was very dark, usually a Deep NN can detect such objects.
+- dynamic change of the size using object size and XYZ RPY position, gettign rid of the manual width and height params
+- read gazebo world file to parse objects
+
+Authors & Contact
+-----------------
+```
+Yurii Stasinchuk <stasiyur@fel.cvut.cz>
+Matous Vrba <vrbamato@fel.cvut.cz> 
+Multi Robot Systems mrs.felk.cvut.cz
+Faculty of electrical engineering,
+Czech Technical University in Prague
+```
