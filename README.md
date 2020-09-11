@@ -3,7 +3,15 @@ This package is developed and used by the MRS group to create a labeled dataset 
 The 3d position of the object is projected into the camera frame using the camera info topic in ROS format.
 
 ## Requirements:
-- SDF file of the objects that satisfy the format for parsing it in scripts/artefact_gt_publisher.py
+- SDF file of the objects that satisfy the format for parsing it in scripts/artefact_gt_publisher.py. Structure example:
+  ```xml
+    <include>
+      <name>rescue_randy_1</name>
+      <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Rescue Randy Sitting</uri>
+      <pose>453.290000 183.140000 9.500000 0 0 0.261799</pose>
+    </include>
+  ```
+
 - odometry for the vehicle
 - the transformation from artifact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
