@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>image_labeling_utils</name>
-  <version>0.0.0</version>
-  <description>The image_labeling_utils package</description>
+  <version>0.0.1</version>
+  <description>Labeling images using artefact ground truth position and vehicle odometry</description>
 
   <maintainer email="stasiyur@fel.cvut.cz">Stasinchuk Yurii</maintainer>
 
 
-  <license>TODO</license>
+  <license>MIT</license>
 
 
   <buildtool_depend>catkin</buildtool_depend>
