@@ -14,7 +14,7 @@ This package is developed and used by MRS group to create labeled dataset in sim
 - The boudning box is managed using the ROS rqt_reconfigure plugin, as shown in the picture, it also provides an offset to the artefact position, to surpress the odometry drift of your vehicle
 ![config/rqt_pic.png](config/rqt_pic.png)
 - Using the rqt button "labeling_on" you can turn on image saving. The images are saved to dataset/images/<name_of_the_object>.time/*.png. The labels are saved to  dataset/labels/<name_of_the_object>.time/*.json.
-- The label format is presented in two types: labelme and csv. In each folder you will get a json for each image, and a csv file for the whole directory (containing every frame).
+- The label format is presented in two types: [labelme](labe) and csv. In each folder you will get a json for each image, and a csv file for the whole directory (containing every frame).
 - Json format is like following:
    ```json
    {
@@ -40,5 +40,5 @@ This package is developed and used by MRS group to create labeled dataset in sim
 
 - the csv format is as follows:
   ```
-    ../../images/backpack_3_214.968000/230.120000_0.png, x1, y1, x2,y2,obj_name
+    ../../images/backpack_3_214.968000/230.120000_0.png,x1,y1,x2,y2,obj_name
   ```
