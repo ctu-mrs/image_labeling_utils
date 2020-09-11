@@ -1,4 +1,4 @@
-## Image Labeling Utils
+### Image Labeling Utils
 
 This package is developed and used by MRS group to create labeled dataset in simulation using ground truth position of the object from gazebo-like simulators.
 
@@ -37,6 +37,7 @@ This package is developed and used by MRS group to create labeled dataset in sim
    "version" : "0.0.1"
 }
    ```
+
 - the csv format is as follows:
   ```
     ../../images/backpack_3_214.968000/230.120000_0.png, x1, y1, x2,y2,obj_name
