@@ -8,8 +8,8 @@ The 3d position of the object is projected into camera frame using the camera in
 - transformation from artefact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
 - set two variable in .bashrc or .zshrc:
-  - ```export ART_NAME="artefact_name_in_gazebo_world"```
-  - ``export OBJ_NAME="artefact_name_for_dataset"``
+  - ```export ART_NAME="artefact_name_in_gazebo_world"``` - this specifies the artefact name that is parsed from world file (in sdf format for ign gazebo)
+  - ``export OBJ_NAME="artefact_name_for_dataset"`` - this variable specifies class name for dataset
 
 
 ## Output:
