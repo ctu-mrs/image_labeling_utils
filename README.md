@@ -64,7 +64,7 @@ Authors & Contact
 -----------------
 ```
 Yurii Stasinchuk <stasiyur@fel.cvut.cz>
-Matous Vrba <vrbamato@fel.cvut.cz> 
+Matouš Vrba  <vrbamato@fel.cvut.cz> 
 Multi-Robot Systems mrs.felk.cvut.cz
 Faculty of electrical engineering,
 Czech Technical University in Prague
