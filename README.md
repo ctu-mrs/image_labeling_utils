@@ -7,6 +7,10 @@ The 3d position of the object is projected into camera frame using the camera in
 - odometry for the vehicle
 - transformation from artefact frame to the frame of the vehicle odometry
 - camera info - camera calibration and information from ROS.
+- set two variable in .bashrc or .zshrc:
+  - ```export ART_NAME="artefact_name_in_gazebo_world"```
+  - ``export OBJ_NAME="artefact_name_for_dataset"``
+
 
 ## Output:
 - The package outputs an image on /UAV_NAME/image_labeling_utils/artefact_boundings
