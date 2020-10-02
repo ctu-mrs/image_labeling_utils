@@ -325,20 +325,23 @@ void ImageLabelingUtils::saveFrame(cv::InputArray image, cv::Point2d left_top, c
     std::ofstream outfile(json_saving_path_ + name_ + ".json");
 
 
+    // checking if the label fits into the image, so we won't label it as as correct one
     if ( (left_top.x < image.cols() && right_bot.x < image.cols()) &&  (left_top.y < image.rows() && right_bot.y < image.rows())) {
       Json::Value shape_;
       shape_["label"]  = _object_str_;
       shape_["points"] = Json::arrayValue;
-      Json::Value l;
-      l[0] = left_top.x;
-      l[1] = left_top.y;
-      shape_["points"].append(l);
+      if (_object_str_ != "none") {
+        ROS_INFO("[ImageLabelingUtils]: The object is labeled as %s",_object_str_.c_str());
+        Json::Value l;
+        l[0] = left_top.x;
+        l[1] = left_top.y;
+        shape_["points"].append(l);
 
-      Json::Value r;
-      r[0] = right_bot.x;
-      r[1] = right_bot.y;
-      shape_["points"].append(r);
-
+        Json::Value r;
+        r[0] = right_bot.x;
+        r[1] = right_bot.y;
+        shape_["points"].append(r);
+      }
       shape_["shape_type"] = "rectangle";
       shape_["flags"]      = Json::objectValue;
       frame_["shapes"].append(shape_);
