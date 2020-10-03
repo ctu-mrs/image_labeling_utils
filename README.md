@@ -18,7 +18,7 @@ The 3d position of the object is projected into the camera frame using the camer
 - set two variable in .bashrc or .zshrc:
   - ```export ART_NAME="artefact_name_in_gazebo_world"``` - this specifies the artefact name that is parsed from world file (in sdf format for ign gazebo)
   - ``export OBJ_NAME="artefact_name_for_dataset"`` - this variable specifies class name for dataset
-- The package is build upon [https://github.com/open-source-parsers/jsoncpp](JsonCPP) package, which can needs to be installed via VCPKG package. In the config folder you can find the script, which will clone the needed repos and install the library:
+- The package is build upon [JsonCPP](https://github.com/open-source-parsers/jsoncpp) package, which can needs to be installed via VCPKG package. In the config folder you can find the script, which will clone the needed repos and install the library:
    ```
    ```
 
