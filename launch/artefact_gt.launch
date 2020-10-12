@@ -4,12 +4,14 @@
 
   <group>
 
-    <!-- for intel with oibaf drivers -->
-    <node pkg="subt_virtual_launch" type="artefact_gt_publisher.py" name="artefact_gt" output="screen" >
-      <param name="sdf_path" value="/home/mrs/subt_workspace/src/subt_virtual/ros_packages/subt_virtual_launch/worlds/mrs_simple_cave_01.sdf"/>
-      <param name="object_name" value="rescue_randy_zero"/>
-      <param name="obj_frame" value="MARBLE_QAV500/virtual_origin"/>
+    <node pkg="image_labeling_utils" type="artefact_gt_publisher.py" name="artefact_gt" output="screen" >
+      <rosparam param="objects_keywords">[rescue_randy, phone, backpack, rope, helmet]</rosparam>
+
+      <param name="sdf_path" value="$(find image_labeling_utils)/mrs_simple_cave_01.sdf"/>
+      <param name="objects_frame" value="world"/>
     </node>
+
+    <node pkg="tf2_ros" type="static_transform_publisher" name="world2subtpub" output="screen" args="10 0 0 0 0 0 world subt" />
   </group>
 
 </launch>
